@@ -286,7 +286,7 @@ footer{display:flex;align-items:center;justify-content:space-between;gap:12px;pa
 <div class="app">
   <header>
     <div class="title"><span class="dot"></span> برزنتيشن إدارة الليدز (Flipbook)</div>
-    <div class="meta">HTML • CSS • JS <span id="test-status">Tests: pending</span></div>
+    <div class="meta"><span id="test-status">عرض تقديمي لفكرة المشروع</span></div>
   </header>
 
   <main class="stage">
@@ -588,18 +588,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(i===4){ animateKPIs(); animateBars(); renderWinners(); }
   }
   restartBtn.addEventListener('click',()=>handleSlideEnter(index));
-
-  // Tests badge
-  (function runTests(){
-    const t1=!!document.getElementById('sheetsGrid');
-    const t2=!!document.getElementById('flowSvg');
-    buildLeads(); const t3=(leads||[]).length>=15;
-    const passed=[t1,t2,t3].filter(Boolean).length, badge=document.getElementById('test-status');
-    badge.textContent=`Tests: ${passed}/3`;
-    badge.style.background=passed===3?'rgba(40,199,111,.18)':'rgba(255,77,79,.18)';
-    badge.style.color=passed===3?'#b8ffcf':'#ffd0d0';
-    badge.style.borderColor=passed===3?'rgba(40,199,111,.45)':'rgba(255,77,79,.45)';
-  })();
 
   updateProgress();
 });
