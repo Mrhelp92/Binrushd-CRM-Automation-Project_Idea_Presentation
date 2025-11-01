@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flipbook – إدارة الليدز الموحدة</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1324; --card:#121a2e; --muted:#7b8ab8; --text:#e6ecff;
+  --accent:#601F45; --accent-2:#28c76f; --accent-3:#00bcd4;
+  --warning:#ffb703; --danger:#ff4d4f; --radius:18px; --shadow:0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background: radial-gradient(1200px 700px at 70% -10%, #1b2340 0%, #0b1324 60%);color:var(--text);font-family:'Tajawal',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;height:100dvh;overflow:hidden}
+.app{height:100%;display:grid;grid-template-rows:auto 1fr auto}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0))}
+header .title{font-weight:800;letter-spacing:.4px;display:flex;align-items:center;gap:10px}
+header .title .dot{width:10px;height:10px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 6px rgba(96,31,69,.2)}
+header .meta{color:var(--muted);font-size:14px;display:flex;align-items:center;gap:10px}
+#test-status{padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.14);font-weight:700}
+
+/* STAGE & FLIPBOOK */
+.stage{position:relative;height:calc(100dvh - 140px);display:grid;place-items:center;padding:22px}
+.book{position:relative;width:min(1180px,96vw);height:min(640px,72vh);perspective:1800px}
+.page{position:absolute;inset:0;background:linear-gradient(165deg,#151e36,#0e162b);border-radius:var(--radius);box-shadow:var(--shadow);padding:clamp(12px,2.4vw,32px);display:grid;grid-template-rows:auto 1fr;gap:16px;transform-origin:right center;backface-visibility:hidden;opacity:0;pointer-events:none;overflow:hidden;margin-top: 10px;}
+.page.active{opacity:1;pointer-events:auto;animation:flipIn .7s cubic-bezier(.4,.2,.2,1) both}
+.page.exit{animation:flipOut .7s cubic-bezier(.4,.2,.2,1) both}
+@keyframes flipIn{from{transform:rotateY(-12deg) translateX(18px);opacity:0}to{transform:rotateY(0) translateX(0);opacity:1}}
+@keyframes flipOut{from{transform:rotateY(0) translateX(0);opacity:1}to{transform:rotateY(12deg) translateX(-18px);opacity:0}}
+
+/* قبل: justify-content:space-between; */
+.head{display:flex;align-items:center;flex-direction:row-reverse;justify-content:space-between;gap:12px}
+.head .h2{text-align:right}
+.head .tag{margin-left:auto}
+
+.tag{font-size:12px;color:#bfd2ff;background:rgba(0,188,212,.15);border:1px solid rgba(0,188,212,.35);padding:6px 10px;border-radius:999px}
+.h1{font-size:clamp(20px,3.8vw,38px);font-weight:800;line-height:1.2}
+.h2{font-size:clamp(18px,2.6vw,26px);font-weight:700;color:#d9e4ff}
+.muted{color:var(--muted)}
+
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(10px,1.2vw,18px);height:100%;max-width:100%;overflow:hidden}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);padding:clamp(10px,1.4vw,10px);overflow:hidden;max-width:100%;box-sizing:border-box}
+
+/* bullets & mini sheets */
+.bullets{display:grid;gap:10px}
+.bullets li{list-style:none;margin-right: -16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:12px 14px;border-radius:12px;position:relative}
+.bullets li:before{content:"";position:absolute;inset-inline-end:-6px;top:14px;width:8px;height:8px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 6px rgba(255,77,79,.18)}
+.sheets-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;height:100%}
+.mini-sheet{background:#0f1730;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;display:grid;gap:6px;min-height:110px}
+.mini-row{height:8px;border-radius:5px;background:rgba(255,255,255,.07)}
+.mini-row:nth-child(2n){background:rgba(255,255,255,.12)}
+.page[data-index="1"] .bullets li:before{inset-inline-start:-6px;inset-inline-end:auto}
+
+/* Flow (index=3) */
+.flow{position:relative;height:100%;overflow:hidden}
+.node{position:absolute;width:96px;height:96px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;text-align:center;transition:all .3s}
+.node.platform{background:linear-gradient(145deg,#27365f,#182444);border:1px solid rgba(255,255,255,.08)}
+.node.core{border-radius:16px;width:200px;height:120px;background:linear-gradient(145deg,#1c2a52,#152140);border:1px solid rgba(255,255,255,.08)}
+.badge{font-size:11px;color:#bcd1ff;margin-top:4px;font-weight:600}
+.node.platform{right:24px}
+.p-google{top:10%}.p-meta{top:28%}.p-snap{top:46%}.p-tt{top:64%}.p-site{top:82%;width:96px;height:96px;border:1px dashed rgba(255,255,255,.14);background:rgba(255,255,255,.03)}
+.node.platform::after{content:"";position:absolute;left:-16px;top:50%;transform:translateY(-50%);width:0;height:0;border-top:7px solid transparent;border-bottom:7px solid transparent;border-right:10px solid rgba(188,209,255,.8);filter:drop-shadow(0 0 6px rgba(188,209,255,.35))}
+.db{right:50%;top:50%;transform:translate(50%,-50%)}
+.crm{left:24px;top:50%;transform:translateY(-50%);width:260px}
+.flow svg{width:100%;height:100%;position:absolute;inset:0;z-index:0}
+
+/* -------- Reports (index=4) -------- */
+.reports2{display:grid;grid-template-rows:auto 1fr;gap:14px;height:100%}
+.reports-top{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;min-height:0}
+.reports-top>*{min-height:0}
+.reports-bottom{min-height:0}
+.chart-wrap{display:grid;grid-template-rows:auto 1fr;gap:10px;min-width:0;min-height:0}
+.chart{position:relative;display:flex;align-items:flex-end;justify-content:space-around;gap:18px;padding:16px 16px 50px;height:100%;min-height:220px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.03);overflow:hidden}
+.bar{width:44px;background:linear-gradient(180deg,rgba(40,199,111,.25),rgba(40,199,111,.9));border:1px solid rgba(40,199,111,.45);border-radius:14px 14px 8px 8px;height:12%;transition:height 1s ease}
+.bar.lose{background:linear-gradient(180deg,rgba(255,77,79,.25),rgba(255,77,79,.9));border-color:rgba(255,77,79,.45)}
+.x-labels{position:absolute;bottom:10px;left:0;width:100%;display:flex;justify-content:space-around;color:var(--muted);font-size:13px;font-weight:700}
+.kpis-row{display:grid;grid-template-columns:repeat(4, 1fr);gap:12px}
+.kpi{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:14px;border-radius:14px;display:flex;align-items:center;justify-content:space-between}
+.kpi .label{color:#bcd1ff;font-weight:700}
+.kpi .val{font-weight:900;font-size:28px}
+.table-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;overflow:visible}
+.table-title{font-weight:800;margin:4px 6px 10px;color:#d9e4ff}
+.winners-table{width:100%;border-collapse:separate;border-spacing:0 8px;font-size:14px;table-layout:fixed}
+.winners-table th{color:#a9bdf4;font-weight:700;text-align:right;padding:8px 10px}
+.winners-table td{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:10px;border-radius:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.winners-table td:nth-child(1){width:28%}
+.winners-table td:nth-child(2){width:52%}
+.winners-table td:nth-child(3){width:20%;text-align:left;font-weight:800}
+.winners-table tbody tr{height:48px}
+
+/* استجابة */
+@media (max-width:990px){
+  .reports-top{grid-template-columns:1fr}
+  .kpis-row{grid-template-columns:1fr 1fr}
+}
+
+/* FOOTER */
+footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-top:1px solid rgba(255,255,255,.06)}
+.controls{display:flex;align-items:center;gap:10px}
+.btn{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.14);color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;box-shadow:var(--shadow);user-select:none;transition:.15s transform}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.progress{height:8px;flex:1;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}
+.progress>span{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#93406c);transition:width .35s ease}
+
+/* ====== Tighten flow slide (index=3) ====== */
+.page[data-index="3"] .flow{padding-inline:40px}
+.page[data-index="3"] .crm{left:140px;width:260px}
+.page[data-index="3"] .db{right:50%;transform:translate(50%,-50%)}
+.page[data-index="3"] .node.platform{right:140px}
+.page[data-index="3"] .p-google{top:6%}.page[data-index="3"] .p-meta{top:24%}
+.page[data-index="3"] .p-snap{top:42%}.page[data-index="3"] .p-tt{top:60%}
+.page[data-index="3"] .p-site{top:78%}
+.page[data-index="3"] .node.platform{width:90px;height:90px}
+.page[data-index="3"] .node.core{width:200px;height:116px}
+
+/* ==================== Solutions Slide (index 2) – match problems ==================== */
+/* === Slide 2 Kanban → Real CRM look === */
+
+/* 1) Grid: ثلاثة أعمدة متساوية بارتفاع السلايد كله */
+.page[data-index="2"] .kanban{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:14px;
+  height:100%;
+  align-items:stretch;
+}
+
+/* 2) عمود كانبان: كرت غامق بظل خفيف وحواف كبيرة */
+.page[data-index="2"] .kb-col{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  background:linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.10));
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:18px;
+  padding:12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.25);
+}
+
+/* 3) هيدر العمود كبادج Pill + ثابت أثناء السّكرول */
+.page[data-index="2"] .kb-title{
+  position:sticky; top:0; z-index:2;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:10px 12px; margin-bottom:10px;
+  border-radius:12px;
+  background:rgba(0,0,0,.25);
+  border:1px solid rgba(255,255,255,.08);
+  font-weight:800; color:#eaf2ff;
+}
+.page[data-index="2"] .kb-badge{
+  font-weight:800;
+  background:rgba(40,199,111,.18);
+  border:1px solid rgba(40,199,111,.45);
+  color:#b9f4cf;
+  padding:4px 10px; border-radius:999px;
+}
+
+/* 4) لست الكروت: عمودية، تسكّرول داخلي فقط */
+.page[data-index="2"] .kb-list{
+  flex:1 1 auto;
+  display:flex; flex-direction:column;
+  gap:12px; min-height:0; overflow:auto;
+  padding:2px 4px 2px 2px;
+}
+
+/* 5) كارت الليد: غامق، ظلّ، أيقونة، ارتفاع على قدّ المحتوى */
+.page[data-index="2"] .kb-card{
+  position:relative;
+  background:linear-gradient(180deg, rgba(27,33,52,.95), rgba(20,26,43,.95));
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:14px;
+  padding:14px 14px 12px 14px;
+  line-height:1.7;
+  box-shadow: 0 8px 22px rgba(0,0,0,.28);
+  transition:.15s transform, .2s box-shadow;
+  height:auto; min-height:unset; width:100%;
+  white-space:normal; word-break:break-word; overflow:visible;
+}
+.page[data-index="2"] .kb-card:hover{
+  transform:translateY(-3px);
+  box-shadow: 0 14px 28px rgba(0,0,0,.35);
+}
+
+/* 6) ترويسة صغيرة داخل الكارت (أيقونة ورق) */
+.page[data-index="2"] .kb-card::before{
+  content:"📄";
+  position:absolute; inset-inline-start:10px; top:10px;
+  opacity:.7; font-size:16px;
+}
+
+/* 7) ميتا وختم الحالة (زي In progress) */
+.page[data-index="2"] .kb-meta{
+  display:flex; align-items:center; justify-content:space-between;
+  color:#c7d6ff; font-size:12px; margin-top:10px;
+}
+.page[data-index="2"] .kb-chip{
+  font-size:12px; font-weight:800;
+  padding:3px 10px; border-radius:999px;
+  border:1px solid rgba(255,120,120,.35);
+  background:rgba(255,120,120,.18); /* شكل In progress */
+  color:#ffd6d6;
+}
+
+/* 8) تنويع ألوان الأعمدة (اختياري خفيف زي الصورة) */
+.page[data-index="2"] .kb-col.new   { background:linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.10)); }
+.page[data-index="2"] .kb-col.follow{ background:linear-gradient(180deg, rgba(64,32,0,.18), rgba(64,32,0,.10)); }
+.page[data-index="2"] .kb-col.book  { background:linear-gradient(180deg, rgba(0,32,16,.18), rgba(0,32,16,.10)); }
+.page[data-index="2"] .kb-col.new   .kb-title{ background:rgba(0,0,0,.28) }
+.page[data-index="2"] .kb-col.follow .kb-title{ background:rgba(64,32,0,.28) }
+.page[data-index="2"] .kb-col.book   .kb-title{ background:rgba(0,32,16,.28) }
+
+/* 9) شريط تمرير أنيق داخل الأعمدة */
+.page[data-index="2"] .kb-list::-webkit-scrollbar{width:8px}
+.page[data-index="2"] .kb-list::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.12); border-radius:999px;
+}
+.page[data-index="2"] .kb-list::-webkit-scrollbar-track{background:transparent}
+
+/* 10) تباعد أفضل بين الأعمدة والكروت على الشاشات الصغيرة */
+@media (max-width: 1024px){
+  .page[data-index="2"] .kanban{grid-template-columns:1fr; gap:12px}
+}
+/* === تحسين محاذاة الكروت داخل الـCRM (Slide 2) === */
+
+/* عنوان الليد + الأيقونة جنب بعض */
+.page[data-index="2"] .kb-card{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:14px;
+  position:relative;
+}
+.page[data-index="2"] .kb-card-header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:700;
+  color:#e9f1ff;
+  line-height:1.6;
+}
+
+/* الأيقونة جنب النص مش فوقه */
+.page[data-index="2"] .kb-card-header::before{
+  content:"📄";
+  font-size:16px;
+  opacity:.75;
+}
+
+/* ضبط الشيب والتاريخ أسفل العنوان */
+.page[data-index="2"] .kb-meta{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:3px;
+  font-size:12px;
+  color:#a9bdf4;
+}
+
+/* الشيب نفسه بارتفاع ثابت ووسيط */
+.page[data-index="2"] .kb-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:22px;
+  min-width:70px;
+  padding:0 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  border:1px solid rgba(255,120,120,.35);
+  background:rgba(255,120,120,.18);
+  color:#ffd6d6;
+}
+
+/* إزالة أيقونة ::before القديمة عشان ما تتكرر */
+.page[data-index="2"] .kb-card::before{content:none;}
+
+/* ==================================================================== */
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="title"><span class="dot"></span> برزنتيشن إدارة الليدز (Flipbook)</div>
+    <div class="meta">HTML • CSS • JS <span id="test-status">Tests: pending</span></div>
+  </header>
+
+  <main class="stage">
+    <div id="book" class="book">
+      <!-- Slide 1 -->
+      <section class="page active" data-index="0">
+        <div class="head"><span class="tag">مشروع أتمتة وإدارة ليد مركز بن رشد للعيون</span></div>
+        <div class="grid">
+          <div class="card" style="grid-column: span 7; display:grid; place-content:center;">
+            <div class="h1">من الفوضى إلى النظام:<br/>تجميع وإدارة الليدز بطريقة ذكية</div>
+            <p class="muted">حل موحد يختصر الوقت والجهد ويرفع التحويلات</p>
+          </div>
+          <div class="card" style="grid-column: span 5; display:grid; place-content:center; text-align:center;">
+            <div style="font-size:120px; line-height:1">📘</div>
+            <div class="badge">اقلب الصفحة للبدء ⟵⟶</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 2 (المشكلة) -->
+      <section class="page" data-index="1">
+        <div class="head"><span class="tag">المشكلة</span><div class="h2">الوضع التقليدي المرهق</div></div>
+        <div class="grid">
+          <div class="card" style="grid-column: 1 / span 6;"><div id="sheetsGrid" class="sheets-grid"></div></div>
+          <div class="card" style="grid-column: 7 / span 6;">
+            <ul class="bullets">
+                <li><b>تعدد المنصات وتجزئة البيانات:</b> الحملات موزعة على جوجل وميتا وسناب وتيك توك بدون نظام موحّد لتجميع الليدز.</li>
+                <li><b>تجميع يدوي مرهق:</b> اعتماد كامل على تصدير ملفات Excel ودمجها يدويًا مما يسبب أخطاء وتكرار بيانات.</li>
+                <li><b>تأخير في تسليم الليدز:</b> انتقال البيانات يدويًا للكول سنتر يؤدي لتأخر في التواصل مع العملاء.</li>
+                <li><b>سقوط وفقدان ليدز:</b> غياب التتبع الفوري يسبب ضياع عدد من العملاء أثناء النقل أو المتابعة.</li>
+                <li><b>بطء في الفيدباك:</b> تأخر الميديا بايرز في استلام النتائج يضعف التحسين ويؤخر قرارات التسويق.</li>
+                <li><b>هدر في الوقت والموارد:</b> الفريق يقضي ساعات يوميًا في جمع وتنظيف البيانات بدل تحليل الأداء.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 3 (الحلول) -->
+      <section class="page" data-index="2">
+        <div class="head">
+          <span class="tag">رسم توضيحي لفكرة المشروع</span>
+          <div class="h2">منظومة موحَّدة: تجميع تلقائي ➜ قاعدة بيانات ➜ CRM ➜ متابعة فعّالة</div>
+        </div>
+        <div class="grid">
+          <!-- شمال: شكل الـ CRM -->
+          <div class="card" style="grid-column: 1 / span 6;">
+            <div class="kanban">
+              <div class="kb-col new">
+                <div class="kb-title">New Lead <span class="kb-badge">3</span></div>
+                <div class="kb-list">
+                  <div class="kb-card">نموذج موقع – حجز استشارة
+                    <div class="kb-meta"><span class="kb-chip">Website</span><span>قبل 5 دقائق</span></div>
+                  </div>
+                  <div class="kb-card">حملة Search – أسنان
+                    <div class="kb-meta"><span class="kb-chip">Google</span><span>قبل 12 دقيقة</span></div>
+                  </div>
+                  <div class="kb-card">Lead Form – Reels
+                    <div class="kb-meta"><span class="kb-chip">Meta</span><span>قبل 20 دقيقة</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="kb-col follow">
+                <div class="kb-title">Follow Up <span class="kb-badge">2</span></div>
+                <div class="kb-list">
+                  <div class="kb-card">مكالمة لم يتم الرد – إعادة محاولة
+                    <div class="kb-meta"><span class="kb-chip">Call</span><span>اليوم 12:10</span></div>
+                  </div>
+                  <div class="kb-card">طلب إرسال تفاصيل واتساب
+                    <div class="kb-meta"><span class="kb-chip">WhatsApp</span><span>اليوم 11:35</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="kb-col book">
+                <div class="kb-title">Reservation <span class="kb-badge">2</span></div>
+                <div class="kb-list">
+                  <div class="kb-card">حجز مؤكد – عيادة جدة
+                    <div class="kb-meta"><span class="kb-chip">Booked</span><span>غدًا 5:30 م</span></div>
+                  </div>
+                  <div class="kb-card">تأكيد موعد – كشف مبدئي
+                    <div class="kb-meta"><span class="kb-chip">Booked</span><span>السبت 3:00 م</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- يمين: نقاط الحلول بنفس ستايل المشاكل -->
+          <div class="card" style="grid-column: 7 / span 6;">
+            <ul class="bullets">
+              <li><b>تجميع تلقائي لحظي لليدز:</b> استقبال كل النماذج من جميع المنصات بدون تدخل يدوي.</li>
+              <li><b>واجهة CRM موحَّدة:</b> كل الليدز تظهر في مكان واحد مع رؤية شاملة للحالة والتاريخ.</li>
+              <li><b>تنظيم البيانات وهندلتها:</b> سهولة توزيع المهام على الكول سنتر مع حقول قياسية وقواعد تنبيه.</li>
+              <li><b>قياس KPIs للكول سنتر:</b> عدد المكالمات، سرعة الاستجابة، نسب التحويل لكل مرحلة.</li>
+              <li><b>تقارير دقيقة وتصدير سهل:</b> معرفة الـ <b>Quality Leads</b> وتكلفة الليد ونتائج الحملات بضغطة زر.</li>
+              <li><b>رفع التحويل وتقليل الهدر:</b> قرارات أسرع، تكلفة أقل، ووقت أقل في التجميع اليدوي.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 4 (الحل – فلو المنصات) -->
+      <section class="page" data-index="3">
+        <div class="head"><span class="tag">الحل</span><div class="h2">تجميع تلقائي لليدز ➜ قاعدة بيانات موحدة ➜ CRM موحد</div></div>
+        <div id="flow" class="card flow">
+          <div class="node platform p-google">جوجل<div class="badge">Google Ads</div></div>
+          <div class="node platform p-meta">ميتا<div class="badge">Facebook/IG</div></div>
+          <div class="node platform p-snap">سناب<div class="badge">Snap</div></div>
+          <div class="node platform p-tt">تيك توك<div class="badge">TikTok</div></div>
+          <div class="node platform p-site">الموقع<div class="badge">Website</div></div>
+          <div class="node core db">قاعدة بيانات<br/><span class="badge">موحدة</span></div>
+          <div class="node core crm">CRM + Call Center<br/><span class="badge">نقطة تشغيل واحدة</span></div>
+          <svg id="flowSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" preserveAspectRatio="none">
+            <defs>
+              <path id="p-g" d="M1020,110 C840,120 740,180 600,300" fill="none" stroke="rgba(0,188,212,.25)" stroke-width="2"/>
+              <path id="p-m" d="M1020,220 C840,240 740,260 600,300" fill="none" stroke="rgba(0,188,212,.25)" stroke-width="2"/>
+              <path id="p-s" d="M1020,330 C840,340 730,320 600,300" fill="none" stroke="rgba(0,188,212,.25)" stroke-width="2"/>
+              <path id="p-t" d="M1020,440 C840,420 730,360 600,300" fill="none" stroke="rgba(0,188,212,.25)" stroke-width="2"/>
+              <path id="p-w" d="M1020,550 C840,480 720,380 600,300" fill="none" stroke="rgba(0,188,212,.25)" stroke-width="2"/>
+              <path id="p-dc" d="M600,300 C480,300 380,300 300,300" fill="none" stroke="rgba(40,199,111,.28)" stroke-width="2"/>
+              <radialGradient id="leadGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#6ff2ff"/><stop offset="100%" stop-color="#00bcd4"/></radialGradient>
+            </defs>
+            <g id="leads"></g>
+          </svg>
+        </div>
+      </section>
+
+      <!-- Slide 5 (التقارير) -->
+      <section class="page" data-index="4">
+        <div class="head">
+          <span class="tag">سهولة تصدير تقارير قوية</span>
+          <div class="h2">تقارير دقيقة مباشرة من المصدر</div>
+        </div>
+
+        <div class="reports2">
+          <div class="reports-top">
+            <div class="table-card">
+              <div class="table-title">الحملات الأنجح (CPL لليد الجيد)</div>
+              <table class="winners-table" id="winnersTable">
+                <thead><tr><th>المنصة</th><th>اسم الحملة</th><th>التكلفة (SAR)</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+
+            <div class="card chart-wrap">
+              <div class="muted" style="font-weight:700">مقارنة الأداء حسب المنصة</div>
+              <div class="chart" id="chart">
+                <div class="bar"></div>
+                <div class="bar lose"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="x-labels">
+                  <span>الموقع</span>
+                  <span>تيك توك</span>
+                  <span>سناب</span>
+                  <span>ميتا</span>
+                  <span>جوجل</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="reports-bottom">
+            <div class="kpis-row">
+              <div class="kpi"><span class="label">تكلفة الحملات (SAR)</span><span class="val" id="kpi-cost-campaigns">0</span></div>
+              <div class="kpi"><span class="label">تكلفة الكواليتي ليد (SAR)</span><span class="val" id="kpi-cpl">0</span></div>
+              <div class="kpi"><span class="label">عدد الحجوزات</span><span class="val" id="kpi-bookings">0</span></div>
+              <div class="kpi"><span class="label">ROAS</span><span class="val" id="kpi-roas">0</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="controls">
+      <button id="next" class="btn">التالي ⟶</button>
+      <button id="prev" class="btn">⟵ السابق</button>
+    </div>
+    <div class="progress" aria-label="progress"><span id="bar"></span></div>
+    <div class="controls">
+      <button id="restartAnim" class="btn" title="إعادة تشغيل الأنيميشن">↻ إعادة الأنيميشن</button>
+    </div>
+  </footer>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  const pages=[...document.querySelectorAll('.page')];
+  const progress=document.getElementById('bar');
+  const nextBtn=document.getElementById('next'), prevBtn=document.getElementById('prev'), restartBtn=document.getElementById('restartAnim');
+  const svg=document.getElementById('flowSvg'); const leadsGroup=svg?svg.querySelector('#leads'):null;
+  const NS='http://www.w3.org/2000/svg', XLINK='http://www.w3.org/1999/xlink';
+  const PLATFORM_TO_DB_DURATION='2.5s', DB_TO_CRM_DURATION='2.0s';
+  let index=0;
+
+  function show(i){
+    if(i===index) return;
+    const cur=pages[index], nxt=pages[i];
+    cur.classList.remove('active'); cur.classList.add('exit');
+    nxt.classList.add('active');
+    setTimeout(()=>cur.classList.remove('exit'),720);
+    index=i; updateProgress(); handleSlideEnter(i);
+  }
+  function updateProgress(){
+    const pct=(index/(pages.length-1))*100;
+    progress.style.width=pct+'%';
+    prevBtn.disabled=index===0; nextBtn.disabled=index===pages.length-1;
+  }
+  nextBtn.addEventListener('click',()=>show(Math.min(index+1,pages.length-1)));
+  prevBtn.addEventListener('click',()=>show(Math.max(index-1,0)));
+  document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight')nextBtn.click(); if(e.key==='ArrowLeft')prevBtn.click(); });
+
+  // Slide 1 mini sheets
+  (function buildSheets(){
+    const grid=document.getElementById('sheetsGrid'); if(!grid) return;
+    for(let i=0;i<9;i++){
+      const s=document.createElement('div'); s.className='mini-sheet';
+      for(let r=0;r<6;r++){ const row=document.createElement('div'); row.className='mini-row'; s.appendChild(row); }
+      grid.appendChild(s);
+    }
+  })();
+
+  // Flow (index=3) SVG leads
+  const platformPaths=['p-g','p-m','p-s','p-t','p-w'];
+  function createLeadPair(id){
+    const g=document.createElementNS(NS,'g');
+    const c1=document.createElementNS(NS,'circle'); c1.setAttribute('r','6'); c1.setAttribute('fill','url(#leadGrad)');
+    const a1=document.createElementNS(NS,'animateMotion'); a1.setAttribute('dur',PLATFORM_TO_DB_DURATION); a1.setAttribute('repeatCount','indefinite'); a1.setAttribute('fill','freeze');
+    const mp1=document.createElementNS(NS,'mpath'); mp1.setAttributeNS(XLINK,'xlink:href','#'+id); mp1.setAttribute('href','#'+id); a1.appendChild(mp1); c1.appendChild(a1);
+
+    const c2=document.createElementNS(NS,'circle'); c2.setAttribute('r','6'); c2.setAttribute('fill','#28c76f'); c2.setAttribute('opacity','0.9');
+    const a2=document.createElementNS(NS,'animateMotion'); a2.setAttribute('dur',DB_TO_CRM_DURATION); a2.setAttribute('repeatCount','indefinite'); a2.setAttribute('fill','freeze');
+    const mp2=document.createElementNS(NS,'mpath'); mp2.setAttributeNS(XLINK,'xlink:href','#p-dc'); mp2.setAttribute('href','#p-dc'); a2.appendChild(mp2); c2.appendChild(a2);
+
+    g.appendChild(c1); g.appendChild(c2); return {g,a1,a2};
+  }
+  let leads=[];
+  function buildLeads(){
+    if(!leadsGroup) return; leadsGroup.innerHTML=''; leads=[];
+    platformPaths.forEach(pid=>{
+      for(let k=0;k<3;k++){ const {g,a1,a2}=createLeadPair(pid); leadsGroup.appendChild(g); leads.push({a1,a2,delay:(Math.random()*1.8)+(k*.4)}); }
+    });
+  }
+  function startSVGLeads(){
+    if(!svg) return; if(!leads.length) buildLeads(); try{svg.setCurrentTime(0);}catch(e){}
+    leads.forEach(l=> setTimeout(()=>{try{l.a1.beginElement()}catch(e){}}, l.delay*1000));
+    setTimeout(()=>{ leads.forEach(l=> setTimeout(()=>{try{l.a2.beginElement()}catch(e){}}, l.delay*150)); }, 1250);
+  }
+
+  /* ---- Reports (index=4): KPIs + Bars + Table ---- */
+  function animateNumberInt(el,to,dur=1100){
+    const start=0,t0=performance.now();
+    function step(t){ const p=Math.min(1,(t-t0)/dur);
+      const val=Math.round(start+(to-start)*(p<.5?(2*p*p):(-1+(4-2*p)*p)));
+      el.textContent=val.toLocaleString('ar-EG'); if(p<1) requestAnimationFrame(step);
+    } requestAnimationFrame(step);
+  }
+  function animateNumberFloat(el,to,dec=1,dur=1100,suffix=""){
+    const start=0,t0=performance.now();
+    function step(t){ const p=Math.min(1,(t-t0)/dur);
+      const val=start+(to-start)*(p<.5?(2*p*p):(-1+(4-2*p)*p));
+      el.textContent=val.toFixed(dec)+(suffix||""); if(p<1) requestAnimationFrame(step);
+    } requestAnimationFrame(step);
+  }
+
+  function animateKPIs(){
+    animateNumberInt(document.getElementById('kpi-cost-campaigns'), 285000);
+    animateNumberInt(document.getElementById('kpi-cpl'), 27);
+    animateNumberInt(document.getElementById('kpi-bookings'), 143);
+    animateNumberFloat(document.getElementById('kpi-roas'), 3.4, 1, 1100, "x");
+  }
+
+  function animateBars(){
+    const bars=document.querySelectorAll('#chart .bar');
+    const targets=[30,48,60,38,72];
+    bars.forEach((b,i)=> requestAnimationFrame(()=> b.style.height=Math.max(10,targets[i])+'%'));
+  }
+
+  const winnersData=[
+    {platform:'جوجل', campaign:'Search - Brand - KSA', cpl:19},
+    {platform:'سناب', campaign:'Story – Lead Gen – KSA', cpl:23},
+    {platform:'ميتا', campaign:'Reels – Lead Form – KSA', cpl:31},
+    {platform:'تيك توك', campaign:'Spark Ads – Interest', cpl:26},
+    {platform:'الموقع', campaign:'Organic Forms', cpl:0}
+  ];
+  function renderWinners(){
+    const tbody=document.querySelector('#winnersTable tbody'); if(!tbody) return;
+    tbody.innerHTML='';
+    winnersData.slice(0,3).forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${r.platform}</td><td title="${r.campaign}">${r.campaign}</td><td>${r.cpl.toLocaleString('ar-EG')}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function handleSlideEnter(i){
+    if(i===3) startSVGLeads();
+    if(i===4){ animateKPIs(); animateBars(); renderWinners(); }
+  }
+  restartBtn.addEventListener('click',()=>handleSlideEnter(index));
+
+  // Tests badge
+  (function runTests(){
+    const t1=!!document.getElementById('sheetsGrid');
+    const t2=!!document.getElementById('flowSvg');
+    buildLeads(); const t3=(leads||[]).length>=15;
+    const passed=[t1,t2,t3].filter(Boolean).length, badge=document.getElementById('test-status');
+    badge.textContent=`Tests: ${passed}/3`;
+    badge.style.background=passed===3?'rgba(40,199,111,.18)':'rgba(255,77,79,.18)';
+    badge.style.color=passed===3?'#b8ffcf':'#ffd0d0';
+    badge.style.borderColor=passed===3?'rgba(40,199,111,.45)':'rgba(255,77,79,.45)';
+  })();
+
+  updateProgress();
+});
+</script>
+</body>
+</html>
